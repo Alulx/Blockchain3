@@ -7,39 +7,34 @@ contract GuessingGame {
     address payable public host;
     address public winner; 
     uint256 public entryFee;
-    mapping(address => uint256) public AddressToGuesses;
-    
-    uint256[] guesses;
-    uint256[] diffs;
+    mapping(uint256 => address) public guessToAddress;
+    mapping(address => bool) public hasEntered; // mapping to track player entries
+
+    uint256[] public guesses;
+    uint256[] public diffs;
 
     uint256 public gameEndTime;
     uint256 public gameCreationTime;    
-    uint256 public numberOfGuesses;
 
     constructor(uint256 _feeAmount) {
         host = payable(msg.sender);
         entryFee = _feeAmount;
         console.log("Deploying GuessingGame with entry fee: ", entryFee);
         console.log("Deploying GuessingGame with host: ", host);
-
-    }
-    //hello world print
-    function helloWorld() public view returns (string memory) {
-        console.log("Hello World!");
-        return "Hello World!";
     }
 
     function guess(uint256 _guess) public payable {
         require(msg.value == entryFee, "Incorrect fee amount");
-        require(AddressToGuesses[msg.sender] == 0, "Player has already entered a guess");
+        require(hasEntered[msg.sender] == false, "Player has already entered a guess");
         require(_guess <= 1000 && _guess >= 0, "Guess must be between 0 and 1000");
+        require(guesses.length < 3, "Game has already ended");
 
-        AddressToGuesses[msg.sender] = _guess;
-        guesses[numberOfGuesses] = _guess;
-        numberOfGuesses += 1;
-        console.log("Address",AddressToGuesses[msg.sender]);
-        console.log("Guess",guesses[numberOfGuesses]);
-        if (numberOfGuesses== 3) {
+        guessToAddress[_guess] = msg.sender;
+        hasEntered[msg.sender] = true;
+
+        guesses.push(_guess);
+
+        if (guesses.length == 3) {
             endGame();
         }
     }
@@ -58,17 +53,18 @@ contract GuessingGame {
    
     function endGame() internal {
         uint256 average = (guesses[0] + guesses[1] + guesses[2]);
-         average = (average *2) /3;
+         average /= 3; //average
+         average = (average * 66) / 100; //get two thirds
          console.log("average number is: ", average);
-
-      /*   for (uint256 i = 0; i < 3; i++) {
+        
+        diffs = new uint256[](3);
+        for (uint256 i = 0; i < 3; i++) {
            uint diff = absDiff(guesses[i], average);
               diffs[i] = diff;
-        }  */
-        uint256 winningNumber = getLargest(diffs);
-        console.log("winning number is: ", winningNumber);
-
-
+        }  
+        uint256 winningNumber = getLargest(diffs) + average;
+        console.log("winning number is: ", winningNumber );
+        console.log("winner is: ", guessToAddress[winningNumber] );
         //payout winner
 
         
@@ -76,10 +72,6 @@ contract GuessingGame {
 
     function absDiff(uint256 a, uint256 b) internal pure returns (uint256) {
         return a > b ? a - b : b - a;
-    }
-
-    function divider(uint numerator, uint denominator, uint precision) public pure returns(uint) {
-        return (numerator*(uint(10)**uint(precision+1))/denominator + 5)/uint(10);
     }
 
 /*     function claimRemainingBalance() external {
@@ -98,11 +90,12 @@ contract GuessingGame {
         }
     } */
 
-    function getLargest(uint256[] memory _array) public view returns(uint){
-        uint store_var = 0;
-        uint i;
+    function getLargest(uint256[] memory _array)  public  returns(uint256){
+        uint256 store_var = 0;
+        uint256 i;
         for(i=0;i<3;i++){
-            if(store_var<_array[i]){
+            console.log("array is: ", _array[0]);
+            if(store_var< _array[i]){
                 store_var = _array[i];
             }
         }
