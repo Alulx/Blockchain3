@@ -1,33 +1,31 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.18;
+pragma solidity >0.4.23 <0.9.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol"
 
 import "hardhat/console.sol";
 import './CloneFactory.sol';
 import './GuessingGame.sol';
 
-contract GuessingFactory is CloneFactory, Ownable {
-    event GameCreated(address indexed host, uint256 gameId);
+contract GuessingFactory is CloneFactory {
+    event GameCreated(address indexed newGame, uint256 gameId);
 
     GuessingGame[] public games;
-    address masterContract;
+    address public implementationAddress;
 
-   constructor(address _masterContract) {
-        masterContract = _masterContract;
+    constructor(address _implementationAddress) {
+        implementationAddress = _implementationAddress;
     }
+    
     function createGame(uint256 gameId) public payable {
-        uint256 entryFee = msg.value;
-        require(msg.value > 0, "Entry fee must be greater than zero");
-        console.log(entryFee);
-                console.log("contract address: ", masterContract);
+        //Creating a new crew object, you need to pay //for the deployment of this contract everytime - $$$$
+        GuessingGame guessingGameAddress = GuessingGame(Clones.clone(implementationAddress));
 
-        GuessingGame host = GuessingGame(createClone(masterContract));
-        console.log(msg.sender);
-        host.init(msg.sender, entryFee);
-        
-        games.push(host);
+        // since the clone create a proxy, the constructor is redundant and you have to use the initialize function
+        guessingGameAddress.initialize(); 
 
+        //Adding the new crew to our list of crew addresses
+        GuessingGame.push(guessingGame);
 
         emit GameCreated(msg.sender, gameId);
     }
