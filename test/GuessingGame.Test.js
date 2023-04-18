@@ -5,20 +5,20 @@ describe("GuessingGame", function () {
   before(async () => {
     [owner,user1,user2,user3] = await ethers.getSigners();
     const GuessingFactoryContract = await ethers.getContractFactory('GuessingFactory');
-    guessingfactory = await GuessingFactoryContract.deploy();
+    guessingfactory = await GuessingFactoryContract.deploy("0x5fbdb2315678afecb367f032d93f642f64180aa3");
   });
 
   describe("Factory", function () {
-/*     it("Should be able to create Games", async function () {
-       guessingfactory.connect(user2).createGame(0, {value: 10});
-        guessingfactory.connect(user1).createGame(1, {value: 5});
+     it("Should be able to create Games", async function () {
+      const guessinggame =  guessingfactory.connect(user2).createGame();
       const games = await guessingfactory.getGames();
       console.log(games);
-      
-      console.log(child1);
-      expect(games.length).to.equal(2);
+      console.log(guessinggame);
 
-    }); */
+     
+       expect(games.length).to.equal(1);
+
+    }); 
   });
 
   describe("Withdrawals", function () {
