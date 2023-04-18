@@ -19,16 +19,26 @@ contract GuessingGame {
     constructor(uint256 _feeAmount) {
         host = payable(msg.sender);
         entryFee = _feeAmount;
+        console.log("Deploying GuessingGame with entry fee: ", entryFee);
+        console.log("Deploying GuessingGame with host: ", host);
+
+    }
+    //hello world print
+    function helloWorld() public view returns (string memory) {
+        console.log("Hello World!");
+        return "Hello World!";
     }
 
     function guess(uint256 _guess) public payable {
         require(msg.value == entryFee, "Incorrect fee amount");
         require(AddressToGuesses[msg.sender] == 0, "Player has already entered a guess");
-        require(guess <= 1000 && guess >= 0, "Guess must be between 0 and 1000");
+        require(_guess <= 1000 && _guess >= 0, "Guess must be between 0 and 1000");
 
         AddressToGuesses[msg.sender] = _guess;
         guesses[numberOfGuesses] = _guess;
         numberOfGuesses += 1;
+        console.log("Address",AddressToGuesses[msg.sender]);
+        console.log("Guess",guesses[numberOfGuesses]);
         if (numberOfGuesses== 3) {
             endGame();
         }
@@ -47,14 +57,15 @@ contract GuessingGame {
 
    
     function endGame() internal {
-        uint256 avergae = ((guesses[0] + guesses[1] + guesses[2]) / 3 ) *0.66;
-        console.log("average number is: ", avergae);
+        uint256 average = (guesses[0] + guesses[1] + guesses[2]);
+         average = (average *2) /3;
+         console.log("average number is: ", average);
 
-        for (uint256 i = 0; i < 3; i++) {
-           uint diff = absDiff(guesses[i], avergae);
+      /*   for (uint256 i = 0; i < 3; i++) {
+           uint diff = absDiff(guesses[i], average);
               diffs[i] = diff;
-        }
-        uint256 winningNumber = getLargest();
+        }  */
+        uint256 winningNumber = getLargest(diffs);
         console.log("winning number is: ", winningNumber);
 
 
@@ -67,6 +78,9 @@ contract GuessingGame {
         return a > b ? a - b : b - a;
     }
 
+    function divider(uint numerator, uint denominator, uint precision) public pure returns(uint) {
+        return (numerator*(uint(10)**uint(precision+1))/denominator + 5)/uint(10);
+    }
 
 /*     function claimRemainingBalance() external {
         require(msg.sender == host, "Only the host can claim the remaining balance");
@@ -84,7 +98,7 @@ contract GuessingGame {
         }
     } */
 
-    function getLargest(uint256[] _array) public view returns(uint){
+    function getLargest(uint256[] memory _array) public view returns(uint){
         uint store_var = 0;
         uint i;
         for(i=0;i<3;i++){

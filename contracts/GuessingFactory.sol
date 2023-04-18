@@ -17,7 +17,7 @@ contract GuessingFactory  {
         console.log("Deploying GuessingFactory with implementation at: ", implementationAddress);
     }
     
-    function createGame() public payable {
+  /*   function createGame() public payable {
         //Creating a new crew object, you need to pay //for the deployment of this contract everytime - $$$$
         GuessingGame guessingGameAddress = GuessingGame(Clones.clone(implementationAddress));
 
@@ -28,7 +28,7 @@ contract GuessingFactory  {
         games.push(guessingGameAddress);
 
         emit GameCreated(msg.sender, 1);
-    }
+    } */
 
      function getGames() external view returns(GuessingGame[] memory){
          return games;
