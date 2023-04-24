@@ -3,7 +3,7 @@ const { ethers } = require('hardhat');
 
 describe("GuessingGame", function () {
   before(async () => {
-    [owner,user1,user2,user3] = await ethers.getSigners();
+    [owner,user1,user2,user3, user4] = await ethers.getSigners();
     const GuessingFactoryContract = await ethers.getContractFactory('GuessingGame');
     contract = await GuessingFactoryContract.deploy(20);
   });
@@ -39,12 +39,23 @@ describe("GuessingGame", function () {
         await expect(contract.guess(1000,{value: 20})).to.be.revertedWith('Player has already entered a guess');
       });
 
-      it("Should be able to give a second guess from new user", async function () {
-        await (contract.connect(user1).guess(1000,{value: 20}));
+      it("Shouldnt be able to end game after a single guess", async function () {
+        await expect(contract.endGame()).to.be.revertedWith('Need at least 3 guesses');
       });
 
-      it("Should calculate the average of all 3 guess and end the game", async function () {
+      it("Should be able to give a second and third and forth guess from new user", async function () {
+        await (contract.connect(user1).guess(1000,{value: 20}));
         await (contract.connect(user2).guess(500,{value: 20}));
+        await (contract.connect(user4).guess(500,{value: 20}));
+
+      });
+
+      it("Should only be possible for players to end the game", async function () {
+        await expect(contract.connect(user3).endGame()).to.be.revertedWith('Only players may end the game');
+      });
+
+      it("Should be possible for player to end the game", async function () {
+        await expect(contract.connect(user1).endGame());
       });
       
   });  
