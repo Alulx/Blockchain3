@@ -50,12 +50,26 @@ describe("GuessingGame", function () {
 
       });
 
-      it("Should only be possible for players to end the game", async function () {
+      it("Should only be possible to  withdraw funds once the game has ended and by host", async function () {
+        await expect(contract.connect(user1).withdraw()).to.be.revertedWith('Only the host can withdraw Ether');
+        await expect(contract.withdraw()).to.be.revertedWith('Game has not ended yet');
+      });
+
+      it("Should only be possible to transfer funds once the game has ended and by host or winner", async function () {
+        await expect(contract.connect(user2).transfer(user1.address)).to.be.revertedWith('Only the host or winner can transfer Ether');
+        await expect(contract.transfer(user1.address)).to.be.revertedWith('Game has not ended yet');
+      });
+
+      it("Should not be possible to end game by outsider", async function () {
         await expect(contract.connect(user3).endGame()).to.be.revertedWith('Only players may end the game');
       });
 
       it("Should be possible for player to end the game", async function () {
         await expect(contract.connect(user1).endGame());
+      });
+
+      it("Should be able to withdraw remaining funds", async function () {
+        await expect(contract.withdraw());
       });
       
   });  
