@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >0.4.23 <0.9.0;
-import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+import "@openzeppelin/contracts/proxy/Clones.sol";
 import "hardhat/console.sol";
 
 contract GuessingFactory  {
@@ -8,22 +8,21 @@ contract GuessingFactory  {
 
     GuessingGame[] public guessingGames;
     mapping(address => address[]) public playerToGames;
-    address public masterContract;
+    address public logicContractAddress;
 
 /*     constructor(address _implementationAddress) {
         implementationAddress = _implementationAddress;
         console.log("Deploying GuessingFactory with implementation at: ", implementationAddress);
     } */
-        constructor(address _masterContract) {
+    constructor(address _masterContract) {
         require(_masterContract != address(0), "Invalid contract address");
-        masterContract = _masterContract;
+        logicContractAddress = _masterContract;
     }
-    // TO DO Factory gets funds sent here, maybe this is good idea for service fee tgho 
-     function createGame(uint256 _feeAmount) external payable {
-        require(msg.value == _feeAmount, "Incorrect wager amount");
 
-        address newGame = Clones.clone(masterContract);
+    function createGame(uint256 _feeAmount) external returns (address)  {
+        // require(msg.value == _feeAmount, "Incorrect wager amount");
 
+        address newGame = Clones.clone(logicContractAddress) ;
         // since the clone create a proxy, the constructor is redundant and you have to use the initialize function
         GuessingGame(newGame).initialize(msg.sender, _feeAmount); 
 
@@ -32,6 +31,9 @@ contract GuessingFactory  {
        // games.push(guessingGameAddress);
 
         emit NewGame(msg.sender, newGame);
+        console.log("new game deployed on: ", newGame);
+
+        return newGame;
     } 
 
       function getGamesByPlayer(address player) external view returns (address[] memory) {
@@ -51,7 +53,7 @@ contract GuessingGame {
     mapping(address => bool) public hasEntered; // mapping to track player entries
 
     uint256[] public guesses;
-    uint256[] public diffs;
+    uint256[] private diffs;
 
     uint256 public gameDeadline;
     uint256 public gameCreationTime;    
@@ -87,10 +89,12 @@ contract GuessingGame {
 
         guesses.push(_guess);
         console.log("guess:", _guess);
-        console.log("guessTOAddress:", getAddressByGuess(_guess)[0]);
 
         if (guessToAddress[_guess].length > 1){
-            console.log("guessTOAddress:", getAddressByGuess(_guess)[1]);
+            console.log("guessTOAddress:", getAddressByGuess(_guess)[guessToAddress[_guess].length - 1]);
+        } else {
+            console.log("guessTOAddress:", getAddressByGuess(_guess)[0]);
+
         }
         
     }
@@ -185,7 +189,7 @@ contract GuessingGame {
         require(success, "Failed to send fees");
     }
 */
-    function getSmallest(uint256[] memory _array)  public  returns(uint256){
+    function getSmallest(uint256[] memory _array)  internal  returns(uint256){
         uint256 store_var = 1000;
         uint256 i;
         for(i=0;i<3;i++){
@@ -215,7 +219,7 @@ contract GuessingGame {
     function transfer(address _winner) public  {
         require(msg.sender == host || msg.sender == winner, "Only the host or winner can transfer Ether");
         require(gameEnded == true,"Game has not ended yet");
-        console.log("ola");
+        console.log("test");
         (bool success, ) = _winner.call{value:  address(this).balance * 90 / 100}("");  // 90% of the balance goes to the winner
         require(success, "Failed to send Ether");
     }

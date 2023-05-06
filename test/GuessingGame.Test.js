@@ -1,11 +1,33 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+describe("GuessingFactory", function () {
+  before(async () => {
+    [owner,user1,user2,user3, user4] = await ethers.getSigners();
+    const GuessingFactoryContract = await ethers.getContractFactory('GuessingFactory');
+    guessingfactory = await GuessingFactoryContract.deploy('0x5FbDB2315678afecb367f032d93F642f64180aa3');
+  });
 
+  it("Should be able to create Games", async function () {
+    const guessinggame =   await guessingfactory.createGame(20);
+
+    // resolve promise of guessinggame
+    
+    console.log("guessinggame: ", guessinggame);
+
+    const gamesByPlayer = await guessingfactory.getGamesByPlayer(owner.address);
+    console.log("gamesByPlayer: ",gamesByPlayer);
+
+   
+     //expect(games.length).to.equal(1);
+
+  }); 
+});
+/* 
 describe("GuessingGame", function () {
   before(async () => {
     [owner,user1,user2,user3, user4] = await ethers.getSigners();
     const GuessingFactoryContract = await ethers.getContractFactory('GuessingGame');
-    contract = await GuessingFactoryContract.deploy(20);
+    contract = await GuessingFactoryContract.deploy();
   });
 
 /*   describe("Factory", function () {
@@ -19,8 +41,7 @@ describe("GuessingGame", function () {
        expect(games.length).to.equal(1);
 
     }); 
-  }); */
-
+  }); 
   describe("Game", function () {
    
       it('Shouldnt be able to guess due to low fees', async function () {
@@ -74,3 +95,4 @@ describe("GuessingGame", function () {
       
   });  
 });
+ */

@@ -6,10 +6,10 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 import "hardhat/console.sol";
 import './GuessingGame.sol';
 
-contract GuessingFactory  {
+contract GuessingFactory2  {
     event GameCreated(address indexed newGame, uint256 gameId);
 
-    mapping(address => GuessingGame) public addressToGame;
+    GuessingGame[] public games; 
     address public implementationAddress;
 
     constructor(address _implementationAddress) {
@@ -19,13 +19,13 @@ contract GuessingFactory  {
     
      function createGame() public payable {
         //Creating a new crew object, you need to pay //for the deployment of this contract everytime - $$$$
-        GuessingGame guessingGameAddress = GuessingGame(Clones.clone(implementationAddress));
+        GuessingGame guessingGame = GuessingGame(Clones.clone(implementationAddress));
 
         // since the clone create a proxy, the constructor is redundant and you have to use the initialize function
-        guessingGame.init(msg.sender, msg.value); 
+        guessingGame.initialize(msg.sender, msg.value); 
 
         //Adding the new crew to our list of crew addresses
-        games.push(guessingGameAddress);
+        games.push(guessingGame);
 
         emit GameCreated(msg.sender, 1);
     } 
