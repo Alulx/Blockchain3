@@ -6,7 +6,6 @@ import "hardhat/console.sol";
 contract GuessingFactory  {
     event NewGame(address indexed player, address game);
 
-    GuessingGame[] public guessingGames;
     mapping(address => address[]) public playerToGames;
     address public logicContractAddress;
 
@@ -24,7 +23,7 @@ contract GuessingFactory  {
 
         address newGame = Clones.clone(logicContractAddress) ;
         // since the clone create a proxy, the constructor is redundant and you have to use the initialize function
-        GuessingGame(newGame).initialize(msg.sender, _feeAmount); 
+         GuessingGame(newGame).initialize(msg.sender, _feeAmount); 
 
         playerToGames[msg.sender].push(newGame);
 

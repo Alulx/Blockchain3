@@ -3,12 +3,20 @@ const { ethers } = require('hardhat');
 describe("GuessingFactory", function () {
   before(async () => {
     [owner,user1,user2,user3, user4] = await ethers.getSigners();
+
+
+    const GuessingGameContract = await ethers.getContractFactory('GuessingGame');
+    contract = await GuessingGameContract.deploy();
+
+
     const GuessingFactoryContract = await ethers.getContractFactory('GuessingFactory');
-    guessingfactory = await GuessingFactoryContract.deploy('0x5FbDB2315678afecb367f032d93F642f64180aa3');
+    guessingfactory = await GuessingFactoryContract.deploy(contract.address);
   });
 
   it("Should be able to create Games", async function () {
-    const guessinggame =   await guessingfactory.createGame(20);
+    //print logicContractAddress
+    console.log("LogicContract address of ProxyFactory: ", await guessingfactory.logicContractAddress());
+    const guessinggame =  await guessingfactory.createGame(20);
 
     // resolve promise of guessinggame
     
@@ -16,7 +24,10 @@ describe("GuessingFactory", function () {
 
     const gamesByPlayer = await guessingfactory.getGamesByPlayer(owner.address);
     console.log("gamesByPlayer: ",gamesByPlayer);
+    console.log("owner.address: ",owner.address);
 
+    //print guessinggame hasInitalized var
+    console.log("guessinggame hasInitalized: ", await guessinggame.data);
    
      //expect(games.length).to.equal(1);
 
