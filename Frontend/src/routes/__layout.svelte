@@ -6,5 +6,6 @@
 
 
 </script>
+<NavigationBar> </NavigationBar>
 
 <slot />

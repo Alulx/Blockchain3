@@ -13,23 +13,38 @@ describe("GuessingFactory", function () {
     guessingfactory = await GuessingFactoryContract.deploy(contract.address);
   });
 
-  it("Should be able to create Games", async function () {
-    //print logicContractAddress
-    console.log("LogicContract address of ProxyFactory: ", await guessingfactory.logicContractAddress());
-    const guessinggame =  await guessingfactory.createGame(20);
+  it("should print some basic info", async function () {
+  
 
-    // resolve promise of guessinggame
+    let tx = await guessingfactory.createGame(20)
+
+    let txreceipt = await tx.wait()
     
-    console.log("guessinggame: ", guessinggame);
-
+    console.log("tx: ",tx)
+    console.log("txreceipt: ",txreceipt)
+    const [NewGame] = txreceipt.events;
+    const  game= NewGame.args.game
+    console.log("stuff", game)
+    guessingfactory.on("NewGame", (arg1, arg2) => {
+      console.log('MyEvent emitted:', arg1, arg2);
+      expect(arg1).to.equal(owner.address);
+      console.log("owneraddress: ",owner.address)
+    })
+    
     const gamesByPlayer = await guessingfactory.getGamesByPlayer(owner.address);
     console.log("gamesByPlayer: ",gamesByPlayer);
     console.log("owner.address: ",owner.address);
-
-    //print guessinggame hasInitalized var
-    console.log("guessinggame hasInitalized: ", await guessinggame.data);
    
-     //expect(games.length).to.equal(1);
+  });
+
+  it("Should be able to  and emit NewGame event", async function () {
+  
+    
+    await expect(guessingfactory.createGame(20))
+      .to.emit(guessingfactory, 'NewGame')
+      .withArgs(owner.address, "0x9f1ac54BEF0DD2f6f3462EA0fa94fC62300d3a8e");
+  
+
 
   }); 
 });

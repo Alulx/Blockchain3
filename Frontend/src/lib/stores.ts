@@ -1,7 +1,4 @@
-import { makeContractStore } from 'svelte-web3';
 import { writable, derived, readable } from 'svelte/store';
-import type { AbiItem } from 'web3-utils';
-import contractAddress from '../contracts/contract-address.json';
 
 /**
  * Tracks the currently logged in user.

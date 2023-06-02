@@ -1,9 +1,6 @@
 <script lang=ts>
 import {  user } from "$lib/stores";
 
-
-import ButtonPrimary from "$lib/universal/button-primary.svelte";
-import TextInput from "$lib/universal/TextInput.svelte";
 import { onMount } from "svelte";
 import { web3,connected, defaultEvmStores, selectedAccount } from "svelte-web3";
 

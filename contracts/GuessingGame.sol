@@ -7,6 +7,8 @@ contract GuessingFactory  {
     event NewGame(address indexed player, address game);
 
     mapping(address => address[]) public playerToGames;
+    address[] public games; 
+
     address public logicContractAddress;
 
 /*     constructor(address _implementationAddress) {
@@ -18,16 +20,16 @@ contract GuessingFactory  {
         logicContractAddress = _masterContract;
     }
 
-    function createGame(uint256 _feeAmount) external returns (address)  {
+    function createGame(uint256 _feeAmount) external  returns (address)  {
         // require(msg.value == _feeAmount, "Incorrect wager amount");
 
         address newGame = Clones.clone(logicContractAddress) ;
         // since the clone create a proxy, the constructor is redundant and you have to use the initialize function
-         GuessingGame(newGame).initialize(msg.sender, _feeAmount); 
+        GuessingGame(newGame).initialize(msg.sender, _feeAmount); 
 
         playerToGames[msg.sender].push(newGame);
 
-       // games.push(guessingGameAddress);
+        games.push(newGame);
 
         emit NewGame(msg.sender, newGame);
         console.log("new game deployed on: ", newGame);
@@ -35,8 +37,12 @@ contract GuessingFactory  {
         return newGame;
     } 
 
-      function getGamesByPlayer(address player) external view returns (address[] memory) {
+    function getGamesByPlayer(address player) external view returns (address[] memory) {
         return playerToGames[player];
+    }
+    
+    function getGames() external view returns(address[] memory){
+        return games;
     }
 }
 
