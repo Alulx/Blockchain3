@@ -48,7 +48,7 @@ describe("GuessingFactory", function () {
 
   }); 
 });
-/* 
+
 describe("GuessingGame", function () {
   before(async () => {
     [owner,user1,user2,user3, user4] = await ethers.getSigners();
@@ -56,7 +56,7 @@ describe("GuessingGame", function () {
     contract = await GuessingFactoryContract.deploy();
   });
 
-/*   describe("Factory", function () {
+   describe("Factory", function () {
      it("Should be able to create Games", async function () {
       const guessinggame =  guessingfactory.connect(user2).createGame();
       const games = await guessingfactory.getGames();
@@ -121,4 +121,3 @@ describe("GuessingGame", function () {
       
   });  
 });
- */

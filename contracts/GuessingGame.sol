@@ -3,6 +3,14 @@ pragma solidity >0.4.23 <0.9.0;
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "hardhat/console.sol";
 
+/*
+    2 contracts: GuessingFactory and GuessingGame
+    GuessingFactory is the factory contract that creates new GuessingGame contracts
+    GuessingGame is the contract that players interact with
+
+
+*/
+
 contract GuessingFactory  {
     event NewGame(address indexed player, address game);
 
@@ -11,10 +19,6 @@ contract GuessingFactory  {
 
     address public logicContractAddress;
 
-/*     constructor(address _implementationAddress) {
-        implementationAddress = _implementationAddress;
-        console.log("Deploying GuessingFactory with implementation at: ", implementationAddress);
-    } */
     constructor(address _masterContract) {
         require(_masterContract != address(0), "Invalid contract address");
         logicContractAddress = _masterContract;
@@ -57,7 +61,7 @@ contract GuessingGame {
     mapping(uint256 => address[]) public guessToAddress;
     mapping(address => bool) public hasEntered; // mapping to track player entries
 
-    uint256[] public guesses;
+    uint256[] private guesses;
     uint256[] private diffs;
 
     uint256 public gameDeadline;
@@ -81,6 +85,7 @@ contract GuessingGame {
 
     function guess(uint256 _guess) public payable {
         require(msg.value == entryFee, "Incorrect fee amount");
+        require(msg.sender != host, "Host cannot enter a guess");
         require(hasEntered[msg.sender] == false, "Player has already entered a guess");
         require(_guess <= 1000 && _guess >= 0, "Guess must be between 0 and 1000");
         require(gameEnded == false, "Game has already ended");
@@ -119,7 +124,7 @@ contract GuessingGame {
     function endGame() external {
         require(guesses.length >= 3, "Need at least 3 guesses");
         // check if someone who has given a guess wants to end the game
-        require(hasEntered[msg.sender] == true, "Only players may end the game");
+        require(msg.sender == host , "Only host may end the game");
         require(gameEnded == false, "Game has already ended");
         
         gameEnded = true;
@@ -210,7 +215,7 @@ contract GuessingGame {
     }
 
     // Function to withdraw  Ether to host from this contract.
-    function withdraw() public  {
+    function withdraw() private  {
         require(msg.sender == host , "Only the host can withdraw Ether");
         require(gameEnded == true,"Game has not ended yet");
 
@@ -221,7 +226,7 @@ contract GuessingGame {
     }
 
     // Function to transfer Ether from this contract to address from input
-    function transfer(address _winner) public  {
+    function transfer(address _winner) private  {
         require(msg.sender == host || msg.sender == winner, "Only the host or winner can transfer Ether");
         require(gameEnded == true,"Game has not ended yet");
         console.log("test");
