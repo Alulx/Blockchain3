@@ -81,6 +81,7 @@ contract GuessingGame {
 
         console.log("Deploying GuessingGame with entry fee: ", entryFee);
         console.log("Deploying GuessingGame with host: ", host);
+        console.log("Deploying on address: ", address(this));
     }
 
     function guess(uint256 _guess) public payable {
@@ -202,7 +203,7 @@ contract GuessingGame {
     function getSmallest(uint256[] memory _array)  internal  returns(uint256){
         uint256 store_var = 1000;
         uint256 i;
-        for(i=0;i<3;i++){
+        for(i=0;i<_array.length;i++){
             if(store_var> _array[i]){
                 store_var = _array[i];
             }
