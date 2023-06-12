@@ -14,7 +14,7 @@ module.exports = {
   defaultNetwork: 'hardhat',
   networks: {
     hardhat: {
-      chainId: 1337, // We set 1337 to make interacting with MetaMask simpler
+      chainId: 0x1338, // We set 1337 to make interacting with MetaMask simpler
     },
    
   },

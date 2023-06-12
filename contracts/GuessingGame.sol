@@ -67,7 +67,7 @@ contract GuessingGame {
     uint256 public gameDeadline;
     uint256 public gameCreationTime;    
 
-    // Function only called once when the game is created
+    // Function only called once when the game is created; _feeAmount should be in eth
     function initialize(address _owner, uint256 _feeAmount) external {
         require(_owner != address(0), "Invalid owner address");
         require(_feeAmount > 0, "Invalid fee amount");
@@ -75,7 +75,9 @@ contract GuessingGame {
 
         hasInitialized = true;
         host = payable(_owner);
-        entryFee = _feeAmount;
+        entryFee = _feeAmount * 10**18; // convert to wei
+        console.log("ola", entryFee);
+
         gameEnded = false; 
         gameDeadline = block.timestamp + 1 days; // set the deadline to 1 day from now
 
@@ -105,27 +107,13 @@ contract GuessingGame {
             console.log("guessTOAddress:", getAddressByGuess(_guess)[guessToAddress[_guess].length - 1]);
         } else {
             console.log("guessTOAddress:", getAddressByGuess(_guess)[0]);
-
         }
         
     }
-
-
-/*     function init(address _host, uint256 _entryFee) external {
-        console.log("init game");
-        host = payable(_host);
-        entryFee = _entryFee;
-        gameEndTime = block.timestamp + 1 days;
-         numberOfGuesses = 0; 
-        gameEnded = false;
-        gameCreationTime = block.timestamp; // Set the game creation time
-    } */
-
    
     function endGame() external {
         require(guesses.length >= 3, "Need at least 3 guesses");
-        // check if someone who has given a guess wants to end the game
-        require(msg.sender == host , "Only host may end the game");
+        require(msg.sender == host || block.timestamp >= gameDeadline, "24 hours have not passed yet or you are not the host");
         require(gameEnded == false, "Game has already ended");
         
         gameEnded = true;
@@ -175,32 +163,7 @@ contract GuessingGame {
         return a > b ? a - b : b - a;
     }
 
-/*     function claimRemainingBalance() external {
-        require(msg.sender == host, "Only the host can claim the remaining balance");
-        require(gameEnded, "Game has not yet ended");
-
-        // Calculate the duration since game creation
-        uint256 durationSinceCreation = block.timestamp - gameCreationTime;
-        // 86400 is one day 
-        // Check if the duration is greater than or equal to the desired duration
-        if (durationSinceCreation >= 86400) {
-            uint256 remainingBalance = address(this).balance - totalPrizePool;
-            if (remainingBalance > 0) {
-                payable(msg.sender).transfer(remainingBalance);
-            }
-        }
-    } */
-
-/*     function withdrawFees() public {
-        require(block.timestamp >= gameDeadline, "Game is still active");
-        require(amount > 0, "No fees to withdraw");
-        
-        fees[msg.sender] = 0;
-        (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "Failed to send fees");
-    }
-*/
-    function getSmallest(uint256[] memory _array)  internal  returns(uint256){
+    function getSmallest(uint256[] memory _array)  pure internal  returns(uint256){
         uint256 store_var = 1000;
         uint256 i;
         for(i=0;i<_array.length;i++){

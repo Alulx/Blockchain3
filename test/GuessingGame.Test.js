@@ -19,7 +19,7 @@ describe("GuessingFactory", function () {
   it("should print some basic info", async function () {
   
 
-    let tx = await guessingfactory.createGame(20)
+    let tx = await guessingfactory.createGame(2)
 
     let txreceipt = await tx.wait()
     
@@ -71,7 +71,7 @@ describe("GuessingFactory", function () {
     });
     
         it("should be initialized ", async function () {
-          await contract.initialize(owner.address, 20);
+          await contract.initialize(owner.address, 2);
           const isInit = await contract.hasInitialized();
           expect(isInit).to.equal(true);
         });
@@ -81,25 +81,25 @@ describe("GuessingFactory", function () {
           expect(host).to.equal(owner.address);
         });
 
-        it("Fee should be 20", async function () {
+        it("Fee should be 2 ether", async function () {
           const fee = await contract.entryFee();
-          expect(fee).to.equal(20);
+          expect(fee).to.equal(ethers.utils.parseEther("2"));
         });
     
         it('Shouldnt be able to guess due to low fees', async function () {
-          await expect(contract.connect(user1).guess(10,{value: 10})).to.be.revertedWith('Incorrect fee amount');
+          await expect(contract.connect(user1).guess(10,{value: ethers.utils.parseEther("0.2")})).to.be.revertedWith('Incorrect fee amount');
         });
 
         it("Shouldnt be able to guess a 1001", async function () {
-          await expect(contract.connect(user1).guess(1001,{value: 20})).to.be.revertedWith('Guess must be between 0 and 1000');
+          await expect(contract.connect(user1).guess(1001,{value: ethers.utils.parseEther("2")})).to.be.revertedWith('Guess must be between 0 and 1000');
         });
 
         it("Should be able give a guess 0", async function () {
-          await contract.connect(user1).guess(0,{value: 20});
+          await contract.connect(user1).guess(0,{value: ethers.utils.parseEther("2")});
         });
 
         it("Shouldnt be able to give a second guess", async function () {
-          await expect(contract.connect(user1).guess(1000,{value: 20})).to.be.revertedWith('Player has already entered a guess');
+          await expect(contract.connect(user1).guess(1000,{value: ethers.utils.parseEther("2")})).to.be.revertedWith('Player has already entered a guess');
         });
 
         it("Shouldnt be able to end game after a single guess", async function () {
@@ -107,9 +107,9 @@ describe("GuessingFactory", function () {
         });
 
         it("Should be able to give a second and third and forth guess from new user", async function () {
-          await (contract.connect(user2).guess(500,{value: 20}));
-          await (contract.connect(user4).guess(500,{value: 20}));
-          await (contract.connect(user5).guess(999,{value: 20}));
+          await (contract.connect(user2).guess(500,{value: ethers.utils.parseEther("2")}));
+          await (contract.connect(user4).guess(500,{value: ethers.utils.parseEther("2")}));
+          await (contract.connect(user5).guess(999,{value: ethers.utils.parseEther("2")}));
 
 
         });
@@ -125,7 +125,7 @@ describe("GuessingFactory", function () {
         }); */
 
         it("Should not be possible to end game by outsider", async function () {
-          await expect(contract.connect(user3).endGame()).to.be.revertedWith('Only host may end the game');
+          await expect(contract.connect(user3).endGame()).to.be.revertedWith('24 hours have not passed yet or you are not the host');
         });
 
         it("Should be possible for host to end the game", async function () {

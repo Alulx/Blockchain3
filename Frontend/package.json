@@ -39,6 +39,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"svelte-web3": "^4.1.0"
+		"svelte-web3": "4.0"
 	}
 }
