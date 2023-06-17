@@ -189,7 +189,9 @@ contract GuessingGame {
         require(success, "Failed to send Ether");
     }
 
-    // Function to transfer Ether from this contract to address from input
+    /**
+     * @dev Function to transfer Ether to winner from this contract.
+     * / */
     function transfer(address _winner) private  {
         require(msg.sender == host || msg.sender == winner, "Only the host or winner can transfer Ether");
         require(gameEnded == true,"Game has not ended yet");
@@ -198,3 +200,7 @@ contract GuessingGame {
         require(success, "Failed to send Ether");
     }
 }
+
+// Commit Reveal
+// Auszahlungen 
+// NatSpec
