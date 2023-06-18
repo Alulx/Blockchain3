@@ -104,9 +104,15 @@ describe("GuessingFactory", function () {
           await contract.connect(user2).commit("0xd2f63731675c6a71dc2bd3699360fd070b4ef61c2e40215aaeeee79f9e81574f", {value:4} )
         });
 
+        it("should commit a 101, 90", async function () {
+          await contract.connect(user4).commit("0xd430cd73dbd454a7e704ecd05377d2269967d62a12cb95aa1d2b9381e124b955", {value:4} )
+        });
+
         it("should commit a 800, 7", async function () {
           await contract.connect(user3).commit("0xfda1fb15b6423425c4c23940a54c663cdf63c6ac5fa15bf9b009dd01df5dbe15", {value:4} )
         });
+
+        
 
         it("Should start the reveal phase", async function () {
           await contract.startRevealPhase();
@@ -117,12 +123,47 @@ describe("GuessingFactory", function () {
           await contract.connect(user1).reveal(50, 3);
         });
 
-        it("should be able to reveal a guess 800,7 ", async function () {
+        it("should be able to reveal a guess 100,8 ", async function () {
           await contract.connect(user2).reveal(100, 8);
+          const addresses = await contract.guessToAddress(100,0);
+          expect(addresses).to.include(user2.address);
         });
 
-        it("should be able to reveal a guess 100,8  ", async function () {
-          await contract.connect(user3).reveal(800,7 );
+        it("should be able to reveal a guess 101,90  ", async function () {
+          await contract.connect(user4).reveal(101,90 );
+          const addresses = await contract.guessToAddress(101,0);
+          expect(addresses).to.include(user4.address);
         });
+      
+        it("should be able to reveal a guess 800,7  ", async function () {
+          await contract.connect(user3).reveal(800,7 );
+          const addresses = await contract.guessToAddress(800,0);
+          expect(addresses).to.include(user3.address);
+        });
+
+        it("should be able to end the game  ", async function () {
+          await contract.endGame();
+        }); 
+
+        it("should be able to withdraw service fees", async function () {
+          await contract.withdrawServiceFee();
+        });
+
+        it("should be able to withdraw prize", async function () {
+          await contract.connect(user4).claimPrize();
+        });
+
+        it("should be able to withdraw deposit", async function () {
+          await contract.connect(user1).retrieveDeposit();
+        });
+
+        it("should be able to withdraw deposit", async function () {
+          await contract.connect(user4).retrieveDeposit();
+        });
+
+        it("should NOT be able to withdraw deposit AGIAN", async function () {
+          await expect(contract.connect(user4).retrieveDeposit()).to.be.revertedWith("Deposit has already been retrieved");
+        });
+
   });
 });

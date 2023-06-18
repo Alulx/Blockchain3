@@ -55,6 +55,8 @@ contract GuessingFactory  {
 contract GuessingGame {
     address payable public host;
     address payable public winner; 
+    address[] private possibleWinners; 
+
     uint256 public entryFee;
     uint256 public prizePool;
     bool public gameEnded;
@@ -68,7 +70,7 @@ contract GuessingGame {
 
     bytes32[] public commits;
     uint256[] private diffs;
-    uint256[] private guesses;
+    uint256[] public guesses;
 
     uint256 public commitDeadline;
     uint256 public revealDeadline;
@@ -77,10 +79,9 @@ contract GuessingGame {
     bool public hasInitialized;
     bool public hasWithdrawn;
     bool public hasTransferred;
-    bool public hasretrieved;
+    mapping(address => bool) public hasretrieved; // mapping to track player deposits
 
     uint256 public gameEndedFactor; // 1 if game ended normally, 2 if game did not find enough players to pay out players
-    uint oneWei = 1 wei; 
 
     // Function only called once when the game is created; _feeAmount should be in eth
     function initialize(address _owner, uint256 _feeAmount) external {
@@ -99,7 +100,6 @@ contract GuessingGame {
         gameEnded = false; 
         hasWithdrawn = false;
         hasTransferred = false;
-        hasretrieved = false;
         gameEndedFactor = 1;
 
         commitDeadline = block.timestamp + 1 days; // set the deadline to 1 day from now
@@ -147,7 +147,7 @@ contract GuessingGame {
         require(msg.sender == host || block.timestamp >= commitDeadline, "24 hours have not passed yet or you are not the host");
         require(gameEnded == false, "Game has already ended");
         
-        prizePool = address(this).balance;
+        prizePool = address(this).balance / 2; //because half of it is from deposits and not to be betted
         isRevealPhase = true;
         revealDeadline = block.timestamp + 1 days; // set the deadline to 1 day from now 
     }
@@ -180,20 +180,20 @@ contract GuessingGame {
         for (uint256 i = 0; i < guesses.length; i++) {
            uint diff = absDiff(guesses[i], average);
               diffs[i] = diff;
+              console.log("diffs: ", diffs[i]);
         }  
-        console.log(getSmallest(diffs));
-        uint256 winningNumber = getSmallest(diffs) + average;
-        console.log("winning number is: ", winningNumber );
-        address[] memory _guessAddress = guessToAddress[winningNumber];
+        console.log("smallest dif: ",getSmallest(diffs));
+
+        getPossibleWinners(diffs, average); // 
 
         // check if multiple players chose the same number and if so, randomly select one
-        if (guessToAddress[winningNumber].length > 1){
-            console.log("endgame_ guessTOAddress:", getAddressByGuess(winningNumber)[0]);
-            console.log("endgame_ guessTOAddress:", getAddressByGuess(winningNumber)[1]);
-            uint256 winnerIndex = uint256(block.timestamp) % guessToAddress[winningNumber].length;
-            winner =  payable(guessToAddress[winningNumber][winnerIndex]);
+        if (possibleWinners.length > 1){
+            console.log("endgame_ guessTOAddress:", possibleWinners[0]);
+            console.log("endgame_ guessTOAddress:", possibleWinners[1]);
+            uint256 winnerIndex = uint256(block.timestamp) % possibleWinners.length;
+            winner =  payable(possibleWinners[winnerIndex]);
         } else {
-            winner =  payable(_guessAddress[0]);
+            winner =  payable(possibleWinners[0]);
         }
         console.log("winner is: ", winner );
 
@@ -213,6 +213,24 @@ contract GuessingGame {
         }
         return store_var;
    } 
+
+   function getPossibleWinners(uint256[] memory _diffs,uint256 _average) internal {
+
+
+        for (uint256 i = 0; i < guesses.length; i++) {
+            if (_average + getSmallest(_diffs) == guesses[i]){
+                for(uint256 j = 0; j < guessToAddress[guesses[i]].length; j++){ //add every address that guessed the winning number to the possible winners array
+                    possibleWinners.push(guessToAddress[guesses[i]][j]);
+                }
+            }
+            // do the same thing but subtract the smallest diff from the average
+            if (_average - getSmallest(_diffs) == guesses[i]){
+                for(uint256 j = 0; j < guessToAddress[guesses[i]].length; j++){ //add every address that guessed the winning number to the possible winners array
+                    possibleWinners.push(guessToAddress[guesses[i]][j]);
+                }
+            }
+        }
+   }
 
     function getAddressByGuess(uint256 number) public view returns (address[] memory) {
         return guessToAddress[number];
@@ -234,7 +252,7 @@ contract GuessingGame {
      * @dev Function to transfer Ether to winner from this contract.
      * / */
     function claimPrize() external  {
-        require(msg.sender == winner, "Only the hwinner can claim the prize");
+        require(msg.sender == winner, "Only the winner can claim the prize");
         require(gameEnded == true,"Game has not ended yet");
         require(hasTransferred == false, "Prize has already been claimed");
         hasTransferred = true;
@@ -245,10 +263,10 @@ contract GuessingGame {
      function retrieveDeposit() external  {
         require(hasRevealed[msg.sender], "Only players who have revealed can retrieve their deposit");
         require(gameEnded == true,"Game has not ended yet");
-        require(hasretrieved == false, "Deposit has already been retrieved");
-        hasretrieved = true;
+        require(hasretrieved[msg.sender] == false, "Deposit has already been retrieved");
+        hasretrieved[msg.sender] = true;
         //Factor depends whether or not game has actually been carried out; 1 if it has, 2 if it has not
-        (bool success, ) = winner.call{value:  entryFee * gameEndedFactor}("");  // Since everyone pays 2x the entry fee, we can just send back the entry fee * 1 or 2 (
+        (bool success, ) = msg.sender.call{value:  entryFee * gameEndedFactor}("");  // Since everyone pays 2x the entry fee, we can just send back the entry fee * 1 or 2 (
         require(success, "Failed to send Ether");
     }
 }
