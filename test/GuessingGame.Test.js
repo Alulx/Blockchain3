@@ -81,60 +81,48 @@ describe("GuessingFactory", function () {
           expect(host).to.equal(owner.address);
         });
 
-        it("Fee should be 2 ether", async function () {
+        it("Fee should be 2 wei", async function () {
           const fee = await contract.entryFee();
-          expect(fee).to.equal(ethers.utils.parseEther("2"));
+          expect(fee).to.equal(2);
+        });
+
+        it("should not be able to commit a guess due to  being host", async function () {
+          await expect(contract.commit("0x3b48f2d0209eb4dd60e62c1f7e596ae31bd20069addd815217072f5e9590f121", {value:4} ))
+            .to.be.revertedWith("Host cannot enter a guess");
         });
     
-        it('Shouldnt be able to guess due to low fees', async function () {
-          await expect(contract.connect(user1).guess(10,{value: ethers.utils.parseEther("0.2")})).to.be.revertedWith('Incorrect fee amount');
+        it("should not be able to commit a guess due to low fees ", async function () {
+          await expect(contract.connect(user1).commit("0x3b48f2d0209eb4dd60e62c1f7e596ae31bd20069addd815217072f5e9590f121", {value:2} ))
+            .to.be.revertedWith("Incorrect fee amount, need to send 2x the entry fee");
+        });
+    
+        it("should commit a 50, 3", async function () {
+          await contract.connect(user1).commit("0x3b48f2d0209eb4dd60e62c1f7e596ae31bd20069addd815217072f5e9590f121", {value:4} )
         });
 
-        it("Shouldnt be able to guess a 1001", async function () {
-          await expect(contract.connect(user1).guess(1001,{value: ethers.utils.parseEther("2")})).to.be.revertedWith('Guess must be between 0 and 1000');
+        it("should commit a 100, 8", async function () {
+          await contract.connect(user2).commit("0xd2f63731675c6a71dc2bd3699360fd070b4ef61c2e40215aaeeee79f9e81574f", {value:4} )
         });
 
-        it("Should be able give a guess 0", async function () {
-          await contract.connect(user1).guess(0,{value: ethers.utils.parseEther("2")});
+        it("should commit a 800, 7", async function () {
+          await contract.connect(user3).commit("0xfda1fb15b6423425c4c23940a54c663cdf63c6ac5fa15bf9b009dd01df5dbe15", {value:4} )
         });
 
-        it("Shouldnt be able to give a second guess", async function () {
-          await expect(contract.connect(user1).guess(1000,{value: ethers.utils.parseEther("2")})).to.be.revertedWith('Player has already entered a guess');
+        it("Should start the reveal phase", async function () {
+          await contract.startRevealPhase();
+          expect(await contract.isRevealPhase()).to.equal(true);
         });
 
-        it("Shouldnt be able to end game after a single guess", async function () {
-          await expect(contract.endGame()).to.be.revertedWith('Need at least 3 guesses');
+        it("should be able to reveal the 50, 3 guess ", async function () {
+          await contract.connect(user1).reveal(50, 3);
         });
 
-        it("Should be able to give a second and third and forth guess from new user", async function () {
-          await (contract.connect(user2).guess(500,{value: ethers.utils.parseEther("2")}));
-          await (contract.connect(user4).guess(500,{value: ethers.utils.parseEther("2")}));
-          await (contract.connect(user5).guess(999,{value: ethers.utils.parseEther("2")}));
-
-
+        it("should be able to reveal a guess 800,7 ", async function () {
+          await contract.connect(user2).reveal(100, 8);
         });
 
-/*         it("Should only be possible to  withdraw funds once the game has ended and by host", async function () {
-          await expect(contract.connect(user1).withdraw()).to.be.revertedWith('Only the host can withdraw Ether');
-          await expect(contract.withdraw()).to.be.revertedWith('Game has not ended yet');
-        }); */
-
-/*         it("Should only be possible to transfer funds once the game has ended and by host or winner", async function () {
-          await expect(contract.connect(user2).transfer(user1.address)).to.be.revertedWith('Only the host or winner can transfer Ether');
-          await expect(contract.transfer(user1.address)).to.be.revertedWith('Game has not ended yet');
-        }); */
-
-        it("Should not be possible to end game by outsider", async function () {
-          await expect(contract.connect(user3).endGame()).to.be.revertedWith('24 hours have not passed yet or you are not the host');
+        it("should be able to reveal a guess 100,8  ", async function () {
+          await contract.connect(user3).reveal(800,7 );
         });
-
-        it("Should be possible for host to end the game", async function () {
-          await expect(contract.endGame());
-        });
-
-/*         it("Should be able to withdraw remaining funds", async function () {
-          await expect(contract.withdraw());
-        }); */
-         
   });
 });

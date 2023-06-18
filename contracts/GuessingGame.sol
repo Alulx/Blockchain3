@@ -2,6 +2,7 @@
 pragma solidity >0.4.23 <0.9.0;
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "hardhat/console.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 /*
     2 contracts: GuessingFactory and GuessingGame
@@ -55,17 +56,31 @@ contract GuessingGame {
     address payable public host;
     address payable public winner; 
     uint256 public entryFee;
+    uint256 public prizePool;
     bool public gameEnded;
-    bool public hasInitialized;
 
+    mapping(address => bytes32) public addressToCommit;
+    mapping(bytes32 => address) public commitToAddress;
     mapping(uint256 => address[]) public guessToAddress;
-    mapping(address => bool) public hasEntered; // mapping to track player entries
 
-    uint256[] private guesses;
+    mapping(address => bool) public hasCommited; // mapping to track player entries
+    mapping(address => bool) public hasRevealed; // mapping to track player entries
+
+    bytes32[] public commits;
     uint256[] private diffs;
+    uint256[] private guesses;
 
-    uint256 public gameDeadline;
-    uint256 public gameCreationTime;    
+    uint256 public commitDeadline;
+    uint256 public revealDeadline;
+    bool public isRevealPhase; 
+
+    bool public hasInitialized;
+    bool public hasWithdrawn;
+    bool public hasTransferred;
+    bool public hasretrieved;
+
+    uint256 public gameEndedFactor; // 1 if game ended normally, 2 if game did not find enough players to pay out players
+    uint oneWei = 1 wei; 
 
     // Function only called once when the game is created; _feeAmount should be in eth
     function initialize(address _owner, uint256 _feeAmount) external {
@@ -75,48 +90,83 @@ contract GuessingGame {
 
         hasInitialized = true;
         host = payable(_owner);
-        entryFee = _feeAmount * 10**18; // convert to wei
+        entryFee = _feeAmount; // convert to wei
+      
+       
         console.log("ola", entryFee);
 
+        isRevealPhase = false;
         gameEnded = false; 
-        gameDeadline = block.timestamp + 1 days; // set the deadline to 1 day from now
+        hasWithdrawn = false;
+        hasTransferred = false;
+        hasretrieved = false;
+        gameEndedFactor = 1;
+
+        commitDeadline = block.timestamp + 1 days; // set the deadline to 1 day from now
 
         console.log("Deploying GuessingGame with entry fee: ", entryFee);
         console.log("Deploying GuessingGame with host: ", host);
         console.log("Deploying on address: ", address(this));
     }
 
-    function guess(uint256 _guess) public payable {
-        require(msg.value == entryFee, "Incorrect fee amount");
+ 
+
+    function commit(bytes32 commitment) public payable {
+        require(msg.value  == entryFee *2, "Incorrect fee amount, need to send 2x the entry fee");
         require(msg.sender != host, "Host cannot enter a guess");
-        require(hasEntered[msg.sender] == false, "Player has already entered a guess");
-        require(_guess <= 1000 && _guess >= 0, "Guess must be between 0 and 1000");
+        require(hasCommited[msg.sender] == false, "Player has already entered a guess");
         require(gameEnded == false, "Game has already ended");
-        require(block.timestamp < gameDeadline, "Game deadline has passed");
+        require(block.timestamp < commitDeadline, "Game deadline has passed");
 
-
-        //require(block.timestamp < gameEndTime, "Game has ended");
-
-        guessToAddress[_guess].push(msg.sender);
-        hasEntered[msg.sender] = true;
-
-        guesses.push(_guess);
-        console.log("guess:", _guess);
-
-        if (guessToAddress[_guess].length > 1){
-            console.log("guessTOAddress:", getAddressByGuess(_guess)[guessToAddress[_guess].length - 1]);
-        } else {
-            console.log("guessTOAddress:", getAddressByGuess(_guess)[0]);
-        }
+        console.log("Ola");
+        addressToCommit[msg.sender] = commitment;
+        commitToAddress[commitment] = (msg.sender);
+        hasCommited[msg.sender] = true;
         
+        commits.push(commitment);      
     }
-   
-    function endGame() external {
-        require(guesses.length >= 3, "Need at least 3 guesses");
-        require(msg.sender == host || block.timestamp >= gameDeadline, "24 hours have not passed yet or you are not the host");
+
+
+   function reveal(uint256 guess,uint256 salt ) public  {
+        require(gameEnded == false, "Game has already ended");
+        require(hasCommited[msg.sender] == true, "Player has commited something");
+        require(hasRevealed[msg.sender] == false, "Player has already revealed");
+        require(isRevealPhase == true, "Reveal phase has not started yet");
+
+        if(keccak256(abi.encodePacked(Strings.toString(guess), Strings.toString(salt)))  == addressToCommit[msg.sender]  ){
+            guessToAddress[guess].push(msg.sender);
+            hasRevealed[msg.sender] = true;
+            guesses.push(guess);
+        } else {
+            revert("Guess does not match commit");
+        }
+
+    }
+
+    function startRevealPhase() external {
+        require(msg.sender == host || block.timestamp >= commitDeadline, "24 hours have not passed yet or you are not the host");
         require(gameEnded == false, "Game has already ended");
         
+        prizePool = address(this).balance;
+        isRevealPhase = true;
+        revealDeadline = block.timestamp + 1 days; // set the deadline to 1 day from now 
+    }
+
+    function endGame() external {
+        require(msg.sender == host || block.timestamp >= revealDeadline, "24 hours have not passed yet or you are not the host");
+        require(gameEnded == false, "Game has already ended");
+
+        if (block.timestamp < revealDeadline && guesses.length < 3) {
+            revert("Wait until at least 3 people have entered guesses");
+        }
+
         gameEnded = true;
+
+        if (guesses.length <3){
+            gameEndedFactor = 2;
+            return;
+        } 
+        
         uint256 average;
         for (uint256 i = 0; i < guesses.length; i++) {
             average += guesses[i];
@@ -147,16 +197,6 @@ contract GuessingGame {
         }
         console.log("winner is: ", winner );
 
-        //payout winner
-        console.log("Contracts balance: ", address(this).balance);
-        transfer(winner); // 90% of the balance goes to the winner
-        withdraw(); // 10% of the balance goes to the host
-        //print balance of contract
-        console.log("Contracts balance: ", address(this).balance);
-        // print balance of winner
-        console.log("Winners balance: ", winner.balance);
-        // and of host
-        console.log("Hosts balance: ", host.balance);
     } 
 
     function absDiff(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -179,24 +219,36 @@ contract GuessingGame {
     }
 
     // Function to withdraw  Ether to host from this contract.
-    function withdraw() private  {
-        require(msg.sender == host , "Only the host can withdraw Ether");
+    function withdrawServiceFee() external  {
+        require(msg.sender == host , "Only the host can withdraw Ether from Service Fee");
         require(gameEnded == true,"Game has not ended yet");
-
+        require(hasWithdrawn == false, "Service fee has already been withdrawn");
+        hasWithdrawn = true; 
         // send all Ether to owner
         // Owner can receive Ether since the address of owner is payable
-        (bool success, ) = host.call{value: address(this).balance * 10 / 100}("");  // 10% of the balance goes to the host
+        (bool success, ) = host.call{value: prizePool * 10 / 100}("");  // 10% of the balance goes to the host
         require(success, "Failed to send Ether");
     }
 
     /**
      * @dev Function to transfer Ether to winner from this contract.
      * / */
-    function transfer(address _winner) private  {
-        require(msg.sender == host || msg.sender == winner, "Only the host or winner can transfer Ether");
+    function claimPrize() external  {
+        require(msg.sender == winner, "Only the hwinner can claim the prize");
         require(gameEnded == true,"Game has not ended yet");
-        console.log("test");
-        (bool success, ) = _winner.call{value:  address(this).balance * 90 / 100}("");  // 90% of the balance goes to the winner
+        require(hasTransferred == false, "Prize has already been claimed");
+        hasTransferred = true;
+        (bool success, ) = winner.call{value:  prizePool * 90 / 100}("");  // 90% of the balance goes to the winner
+        require(success, "Failed to send Ether");
+    }
+
+     function retrieveDeposit() external  {
+        require(hasRevealed[msg.sender], "Only players who have revealed can retrieve their deposit");
+        require(gameEnded == true,"Game has not ended yet");
+        require(hasretrieved == false, "Deposit has already been retrieved");
+        hasretrieved = true;
+        //Factor depends whether or not game has actually been carried out; 1 if it has, 2 if it has not
+        (bool success, ) = winner.call{value:  entryFee * gameEndedFactor}("");  // Since everyone pays 2x the entry fee, we can just send back the entry fee * 1 or 2 (
         require(success, "Failed to send Ether");
     }
 }
