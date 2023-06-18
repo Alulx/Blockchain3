@@ -1,25 +1,26 @@
 <script lang="ts">
-import NavigationBar from '../lib/layout/navigation-bar.svelte';
 import { defaultEvmStores as evm, connected,  web3, contracts , selectedAccount } from 'svelte-web3'
 import Factory_ABI from "../contracts/proxyFactory.json";
-import Game_ABI from "../contracts/guessinggame.json";
+
+ import Game_ABI from "../contracts/guessinggame.json";
 import proxyContractAddress from "../contracts/proxy-contract-address.json";
 import type { AbiItem } from "web3-utils";
 
-let factoryContract: any;
+$: if (connected) {
+    console.log(new Date().toLocaleDateString("en-GB"))
+}
 let fee: number;
-$: getGames();
-let testGames: Game[] = [];
-let activeGames: Game[] = [];
-$: activeGames = testGames.filter(game => !game.gameEnded);
-$: console.log("test  Games:", testGames);
+let testGames: string[] = [];
+let Games: Game[] = [];
 evm.attachContract('guessingfactorycontract',proxyContractAddress.proxyFactory, Factory_ABI.abi as AbiItem[])
-
 interface Game {
     fee: number;
-    gameEnded: boolean;
     host: string;
-
+    address: string;
+    gameEnded: boolean;
+    deadlineCommit: number;
+    deadlineReveal: number;
+    isRevealPhase: boolean;
 }
 
 
@@ -29,8 +30,6 @@ async function createGameFront(){
         alert("Please enter a positive betting amount");
         return;
     }
-    activeGames.push({fee: fee, gameEnded: true, host: "test"});
-
    
     let address=  await $contracts.guessingfactorycontract.methods.logicContractAddress().call();
     console.log("address:_ ",address)
@@ -50,16 +49,33 @@ async function createGameFront(){
 }
 
 async function getGames(){
-    // games = await $contracts.guessingfactorycontract.methods.getGames().call();
-    const game1: Game = {fee: 11, gameEnded: false, host: "0x0324872tz8bsaldjf83"}
-    const game2: Game = {fee: 20, gameEnded: false, host: "0xGAMER2"}
-    const game3: Game = {fee: 20, gameEnded: true, host: "0xGAMER3"}
 
-    testGames.push(game1);
-    //testGames.pop();
+    testGames = await $contracts.guessingfactorycontract.methods.getGames().call();
+    
 
-    //it looks stupid but is best practice, trust me 
+
+    getGameData();
+    //it looks stupid but is best practice, trust me (needed to fire the reactive statement above that is dependent on testGames)
     testGames = testGames;
+}
+
+async function getGameData(){
+    for (let i=0; i<testGames.length; i++){
+        console.log("game: ",testGames[0]);
+        var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , testGames[i]);
+        //instantiate new  Game     
+        Games[i] = {
+            fee: await contract.methods.entryFee().call(),
+            host: await contract.methods.host().call(),
+            address: testGames[i],
+            gameEnded: await contract.methods.gameEnded().call(),
+            deadlineCommit: await contract.methods.commitDeadline().call(),
+            deadlineReveal: await contract.methods.revealDeadline().call(),
+            isRevealPhase: await contract.methods.isRevealPhase().call()
+        }
+        console.log("game: ",Games[i]);
+    
+    }
 }
 
 async function joinGame(){
@@ -71,7 +87,17 @@ async function joinGame(){
  */
 }
 
+async function claimPrize(){
+    //TODO
+}
 
+async function claimServiceFee(){
+    //TODO
+}
+
+async function claimDeposit(){
+    //TODO
+}
 
 </script>
 <div class="   m-10">
@@ -87,7 +113,7 @@ async function joinGame(){
             <input
                 bind:value={fee}
                 type="text"
-                placeholder="Betting Amount"
+                placeholder="Betting Amount in WEI"
                 class="input mt-3 input-bordered input-accent "
             />
         </div>
@@ -101,20 +127,50 @@ async function joinGame(){
 
             <div class="flex pt-2  gap-5 flex-wrap justify-center  ">
             <!-- if games avaialble show them otherwise say no page online right now -->
-                {#if activeGames != undefined && activeGames.length > 0}
-                    {#each activeGames as game}
+                {#if Games != undefined && Games.length > 0}
+                    {#each Games as game}
                         <div class="flex flex-col border-2 bg-secondary  border-orange-600 ">
                             <span class="text pt-2 pl-2 pr-2 text-white">Host: {game.host}</span>
                             <span class="flex text  p-2 pr-2  text-white">EntryFee: {game.fee} <img src="/img/eth.png"  width=30 height=20 alt="ether" /> </span>
+                            {#if !game.isRevealPhase}
+                                <span class="text  pl-2 pr-2 text-white">Commit Until: {new Date(Number(game.deadlineCommit)).toLocaleDateString("en-GB")}</span>
+                            {:else}
+                                <span class="text  pl-2 pr-2 text-white">Reveal until: {new Date(Number(game.deadlineReveal )).toLocaleDateString("en-GB")}</span>
+                            {/if}
+                            {#if !game.gameEnded}
+                                <button class="btn btn-accent btn-sm "
+                                    on:click={joinGame}
+                                    ><span class=" text-lg text-white">Join</span>
+                                </button>
+                                
+                                
+                                
+                            {:else}
+                                <span class="text pt-2 pl-2 pr-2 text-white">Game Ended you may claim remaining funds</span>
+                                {#if game.host == $selectedAccount}
+                                    <button class="btn btn-accent btn-sm "
+                                        on:click={claimServiceFee}
+                                        ><span class="text-lg text-white">Withdraw Service Fee</span>
+                                    </button> 
+                                {/if}
+                                {#if game.winner = $selectedAccount}
+                                    <button class="btn btn-accent btn-sm "
+                                        on:click={claimPrize}
+                                        ><span class="text-lg text-white">Claim Prize</span>
+                                    </button>
+                                {:else}
+                                    <button class="btn btn-accent btn-sm "
+                                        on:click={claimDeposit}
+                                        ><span class="text-lg text-white">Retrieve Deposit</span>
+                                    </button>
+                                {/if}
+                                
 
-                            <button class="btn btn-accent btn-sm "
-                                on:click={joinGame}
-                                ><span class=" text-lg text-white">Join</span>
-                            </button>
+                            {/if}
                         </div>
                     {/each}
                 {:else}
-                    <span  style="text-align:center" class="  text-5xl  text-white">There are currently no active games </span>
+                    <span  style="text-align:center" class="  text-5xl  text-white">There are currently no active games (Hit Refresh to check for new games)</span>
                 {/if} 
             </div>
         </div>
