@@ -117,7 +117,7 @@ contract GuessingGame {
         require(hasCommited[msg.sender] == false, "Player has already entered a guess");
         require(gameEnded == false, "Game has already ended");
         require(block.timestamp < commitDeadline, "Game deadline has passed");
-
+        require(isRevealPhase == false, "Reveal phase has already started");
         console.log("Ola");
         addressToCommit[msg.sender] = commitment;
         commitToAddress[commitment] = (msg.sender);
@@ -129,14 +129,18 @@ contract GuessingGame {
 
    function reveal(uint256 guess,uint256 salt ) public  {
         require(gameEnded == false, "Game has already ended");
-        require(hasCommited[msg.sender] == true, "Player has commited something");
+        require(hasCommited[msg.sender] == true, "Player has not commited something");
         require(hasRevealed[msg.sender] == false, "Player has already revealed");
         require(isRevealPhase == true, "Reveal phase has not started yet");
 
         if(keccak256(abi.encodePacked(Strings.toString(guess), Strings.toString(salt)))  == addressToCommit[msg.sender]  ){
-            guessToAddress[guess].push(msg.sender);
-            hasRevealed[msg.sender] = true;
-            guesses.push(guess);
+            if (guess >= 0 && guess <= 1000){
+                guessToAddress[guess].push(msg.sender);
+                hasRevealed[msg.sender] = true;
+                guesses.push(guess);
+            } else {
+                require(guess >= 0 && guess <= 1000, "Guess must be between 0 and 1000");
+            }
         } else {
             revert("Guess does not match commit");
         }
@@ -146,16 +150,17 @@ contract GuessingGame {
     function startRevealPhase() external {
         require(msg.sender == host || block.timestamp >= commitDeadline, "24 hours have not passed yet or you are not the host");
         require(gameEnded == false, "Game has already ended");
-        
+        require(commits.length >= 3, "Wait until at least 3 people have entered commits");
+        require(isRevealPhase == false, "Reveal phase has already started");
         prizePool = address(this).balance / 2; //because half of it is from deposits and not to be betted
         isRevealPhase = true;
         revealDeadline = block.timestamp + 1 days; // set the deadline to 1 day from now 
     }
 
     function endGame() external {
-        require(msg.sender == host || block.timestamp >= revealDeadline, "24 hours have not passed yet or you are not the host");
+        require(guesses.length == commits.length|| block.timestamp >= revealDeadline, "24 hours have not passed yet or you are not the host");
         require(gameEnded == false, "Game has already ended");
-
+        
         if (block.timestamp < revealDeadline && guesses.length < 3) {
             revert("Wait until at least 3 people have entered guesses");
         }
@@ -234,6 +239,24 @@ contract GuessingGame {
 
     function getAddressByGuess(uint256 number) public view returns (address[] memory) {
         return guessToAddress[number];
+    }
+
+    function getCommits() public view returns (uint256 ) {
+        // get all commits
+        uint256[] memory commitsInt = new uint256[](commits.length);
+        for (uint256 i = 0; i < commits.length; i++) {
+            commitsInt[i] = uint256(commits[i]);
+        }
+        return commitsInt.length;      
+    }
+
+     function getGuesses() public view returns (uint256 ) {
+        // get all commits
+        uint256[] memory guessesInt = new uint256[](guesses.length);
+        for (uint256 i = 0; i < commits.length; i++) {
+            guessesInt[i] = uint256(guessesInt[i]);
+        }
+        return guessesInt.length;      
     }
 
     // Function to withdraw  Ether to host from this contract.

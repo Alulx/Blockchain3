@@ -9,7 +9,10 @@ import type { AbiItem } from "web3-utils";
 $: if (connected) {
     console.log(new Date().toLocaleDateString("en-GB"))
 }
-let fee: number;
+let fee: any;
+let commit: any;
+let guess: any;
+let salt: any;
 let testGames: string[] = [];
 let Games: Game[] = [];
 evm.attachContract('guessingfactorycontract',proxyContractAddress.proxyFactory, Factory_ABI.abi as AbiItem[])
@@ -21,12 +24,16 @@ interface Game {
     deadlineCommit: number;
     deadlineReveal: number;
     isRevealPhase: boolean;
+    winner: string;
+    numCommits: number;
+    numReveals: number;
+    guess: number;
 }
 
 
 async function createGameFront(){
     //Fee should be positive number only, so not empty and no characters
-    if (fee < 0 || fee == null ) {
+    if (fee < 0 || fee == '' || !isNaN(fee)) {
         alert("Please enter a positive betting amount");
         return;
     }
@@ -71,32 +78,83 @@ async function getGameData(){
             gameEnded: await contract.methods.gameEnded().call(),
             deadlineCommit: await contract.methods.commitDeadline().call(),
             deadlineReveal: await contract.methods.revealDeadline().call(),
-            isRevealPhase: await contract.methods.isRevealPhase().call()
+            isRevealPhase: await contract.methods.isRevealPhase().call(),
+            winner: await contract.methods.winner().call(),
+            numCommits: await contract.methods.getCommits().call(),
+            numReveals: await contract.methods.getGuesses().call(),
+            guess: await contracts.methods.getGuesses().call()
+
         }
         console.log("game: ",Games[i]);
     
     }
 }
 
-async function joinGame(){
-   /*  evm.attachContract('guessinggamecontract',game, Game_ABI.abi as AbiItem[])
-    console.log("game: ",game);
-    console.log("game contract: ",$contracts.guessinggamecontract);
-    console.log("game contract: ",$contracts.guessinggamecontract.methods);
-    console.log("game contract: ",$contracts.guessinggamecontract.methods.getGameInfo().call());
- */
+async function joinGame(game: Game){
+    if ( salt == null || commit == null || salt == '' || commit == '') {
+        alert("At least one Value is missing");
+        return;
+    }
+    if (!( !isNaN(commit) && commit >= 0  &&  commit <= 1000) ) {
+        alert("Please enter a postive betting amount between 0 and 1000");
+        return;
+    }
+ 
+    var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
+    const hash = $web3.utils.sha3(commit + salt)
+    console.log("Hash: ",hash);
+
+    await contract.methods.commit(hash).send({from: $selectedAccount, gas: 3000000, value: game.fee *2}); 
+
 }
 
-async function claimPrize(){
-    //TODO
+async function reveal(game: Game){
+    if ( salt == null || guess == null || salt == '' || guess == '') {
+        alert("At least one Value is missing");
+        return;
+    }
+    if (!( !isNaN(guess) && guess >= 0  &&  guess <= 1000) ) {
+        alert("Please enter a postive betting amount between 0 and 1000");
+        return;
+    }
+ 
+    var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
+    await contract.methods.reveal(guess, salt).send({from: $selectedAccount, gas: 3000000});
+    console.log("Your guess has been processed!")
 }
 
-async function claimServiceFee(){
-    //TODO
+async function startRevealPhase(game: Game){
+    console.log("Starting Revealing Phase...")
+    var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
+    //start Reveal Phase
+    await contract.methods.startRevealPhase().send({from: $selectedAccount, gas: 3000000});
+    console.log(await contract.methods.isRevealPhase().call());   
+    getGames();
 }
 
-async function claimDeposit(){
-    //TODO
+async function endGame(game: Game){
+    console.log("Ending the game")
+    var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
+    //start Reveal Phase
+    await contract.methods.endGame().send({from: $selectedAccount, gas: 3000000});
+    console.log(await contract.methods.gameEnded().call());   
+    getGames();
+}
+
+async function claimPrize(game: Game){
+    var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
+    await contract.methods.claimPrize().send({from: $selectedAccount, gas: 3000000});
+}
+
+async function claimServiceFee(game: Game){
+    var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
+    await contract.methods.withdrawServiceFee().send({from: $selectedAccount, gas: 3000000});
+
+}
+
+async function claimDeposit(game: Game){
+    var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
+    await contract.methods.retrieveDeposit().send({from: $selectedAccount, gas: 3000000});
 }
 
 </script>
@@ -133,37 +191,103 @@ async function claimDeposit(){
                             <span class="text pt-2 pl-2 pr-2 text-white">Host: {game.host}</span>
                             <span class="flex text  p-2 pr-2  text-white">EntryFee: {game.fee} <img src="/img/eth.png"  width=30 height=20 alt="ether" /> </span>
                             {#if !game.isRevealPhase}
-                                <span class="text  pl-2 pr-2 text-white">Commit Until: {new Date(Number(game.deadlineCommit)).toLocaleDateString("en-GB")}</span>
+                                <span class="text  pl-2 pr-2 text-white">Commit Until: {new Date(Number(game.deadlineCommit *1000))}</span>
                             {:else}
-                                <span class="text  pl-2 pr-2 text-white">Reveal until: {new Date(Number(game.deadlineReveal )).toLocaleDateString("en-GB")}</span>
+                                <span class="text  pl-2 pr-2 text-white">Reveal until: {new Date(Number(game.deadlineReveal*1000 ))}</span>
                             {/if}
+
+                            
                             {#if !game.gameEnded}
-                                <button class="btn btn-accent btn-sm "
-                                    on:click={joinGame}
-                                    ><span class=" text-lg text-white">Join</span>
-                                </button>
-                                
-                                
+                                {#if !game.isRevealPhase}
+                                    <button class="btn btn-accent btn-sm "
+                                        on:click={(event) => joinGame(game)}
+                                        ><span class=" text-lg text-white">Commit</span>
+                                    </button>
+                                    <div class="flex">
+                                        <input
+                                        bind:value={commit}
+                                        type="text"
+                                        placeholder="Enter your Guess"
+                                        class="input w-1/2 input-bordered input-accent "
+                                    />
+                                    <input
+                                        bind:value={salt}
+                                        type="text"
+                                        placeholder="Enter a Random Number (SALT)"
+                                        class=" input w-1/2 input-bordered input-accent "
+                                    />
+                                    </div>
+                        
+                                {:else}
+                                    <button class="btn btn-accent btn-sm "
+                                        on:click={(event) => reveal(game)}
+                                        ><span class=" text-lg text-white">Reveal</span>
+                                    </button>  
+                                    <div class="flex">
+                                        <input
+                                        bind:value={guess}
+                                        type="text"
+                                        placeholder="Enter your Guess from earlier again"
+                                        class="input w-1/2 input-bordered input-accent "
+                                    />
+                                    <input
+                                        bind:value={salt}
+                                        type="text"
+                                        placeholder="Enter your SALT from earlier again"
+                                        class=" input w-1/2 input-bordered input-accent "
+                                    />
+                                    </div>
+                                                                 
+                                {/if}
+                               
+
+                                <span class="flex text  p-2 pr-2  text-white">Number of Commits so far: {game.numCommits} </span>
+                                {#if game.host.toLocaleLowerCase() == $selectedAccount && !game.isRevealPhase}
+                                    <button class="btn  btn-accent btn-sm "
+                                        on:click={(event) => startRevealPhase(game)}
+                                        ><span class="text-lg  text-white">Start Reveal Phase</span>
+                                    </button>
+                                {/if}
+                                {#if game.host.toLocaleLowerCase() == $selectedAccount && game.isRevealPhase}
+                                    <button class="btn  btn-accent btn-sm "
+                                         on:click={(event) => endGame(game)}
+                                    ><span class="text-lg  text-white">End the Game</span>
+                                    </button>
+                                    <span class="flex text  p-2 pr-2  text-white">possible 24h from start from reveal Phase or when everyone has revealed</span>
+                                    <span class="flex text  p-2 pr-2  text-white">Number of Reveals needed {game.numCommits - game.numReveals}</span>
+
+                                {/if}
+                              
                                 
                             {:else}
                                 <span class="text pt-2 pl-2 pr-2 text-white">Game Ended you may claim remaining funds</span>
-                                {#if game.host == $selectedAccount}
+                                <span class="text pt-2 pl-2 pr-2 text-white">Winner was: {game.winner}</span>
+
+                                {#if game.host.toLocaleLowerCase() == $selectedAccount}
                                     <button class="btn btn-accent btn-sm "
-                                        on:click={claimServiceFee}
+                                        on:click={(event) => claimServiceFee(game)}
                                         ><span class="text-lg text-white">Withdraw Service Fee</span>
                                     </button> 
-                                {/if}
-                                {#if game.winner = $selectedAccount}
+                                {:else}
+                                    {#if game.winner.toLocaleLowerCase() == $selectedAccount}
+                                    <span class="text pt-2 pl-2 pr-2 text-white">You won! Congratulations!</span>
+
                                     <button class="btn btn-accent btn-sm "
-                                        on:click={claimPrize}
+                                        on:click={(event) => claimPrize(game)}
                                         ><span class="text-lg text-white">Claim Prize</span>
                                     </button>
-                                {:else}
+                                    {:else}
+                                        <span class="text pt-2 pl-2 pr-2 text-white">You did not win</span>
+                                    {/if}
+
                                     <button class="btn btn-accent btn-sm "
-                                        on:click={claimDeposit}
+                                        on:click={(event) => claimDeposit(game)}
                                         ><span class="text-lg text-white">Retrieve Deposit</span>
-                                    </button>
+                                    </button>  
+                                    <span class="text pt-2 pl-2 pr-2 text-white">Your Guess was: </span>
+
                                 {/if}
+                                                 
                                 
 
                             {/if}
