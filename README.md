@@ -1,13 +1,13 @@
 # Sample Hardhat Project
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+This project demonstrates a basic web3 use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract and a Frontend to run the application inside
 
-Try running some of the following tasks:
+## Quick start
+run npm install to get all needed packages 
+you might need to manually install svelte-web3: npm i svelte-web3
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.js
+In order to run the Frontend you need to run the following commands in the root directory of the project:
+cd Frontend
+npm run dev
+
 ```

@@ -158,9 +158,10 @@ contract GuessingGame {
     }
 
     function endGame() external {
-        require(guesses.length == commits.length|| block.timestamp >= revealDeadline, "24 hours have not passed yet or you are not the host");
+        require(guesses.length == commits.length|| block.timestamp >= revealDeadline, "24 hours have not passed yet or not everyone has revealed yet");
         require(gameEnded == false, "Game has already ended");
         
+        //technically not needed
         if (block.timestamp < revealDeadline && guesses.length < 3) {
             revert("Wait until at least 3 people have entered guesses");
         }
@@ -242,21 +243,13 @@ contract GuessingGame {
     }
 
     function getCommits() public view returns (uint256 ) {
-        // get all commits
-        uint256[] memory commitsInt = new uint256[](commits.length);
-        for (uint256 i = 0; i < commits.length; i++) {
-            commitsInt[i] = uint256(commits[i]);
-        }
-        return commitsInt.length;      
+ 
+        return commits.length   ;
     }
 
      function getGuesses() public view returns (uint256 ) {
-        // get all commits
-        uint256[] memory guessesInt = new uint256[](guesses.length);
-        for (uint256 i = 0; i < commits.length; i++) {
-            guessesInt[i] = uint256(guessesInt[i]);
-        }
-        return guessesInt.length;      
+         
+            return guesses.length ;   
     }
 
     // Function to withdraw  Ether to host from this contract.

@@ -27,13 +27,15 @@ interface Game {
     winner: string;
     numCommits: number;
     numReveals: number;
-    guess: number;
+
+
+
 }
 
 
 async function createGameFront(){
     //Fee should be positive number only, so not empty and no characters
-    if (fee < 0 || fee == '' || !isNaN(fee)) {
+    if ( fee == '' ) {
         alert("Please enter a positive betting amount");
         return;
     }
@@ -82,7 +84,6 @@ async function getGameData(){
             winner: await contract.methods.winner().call(),
             numCommits: await contract.methods.getCommits().call(),
             numReveals: await contract.methods.getGuesses().call(),
-            guess: await contracts.methods.getGuesses().call()
 
         }
         console.log("game: ",Games[i]);
@@ -91,17 +92,14 @@ async function getGameData(){
 }
 
 async function joinGame(game: Game){
-    if ( salt == null || commit == null || salt == '' || commit == '') {
+    if ( salt == '' || commit == '') {
         alert("At least one Value is missing");
         return;
     }
-    if (!( !isNaN(commit) && commit >= 0  &&  commit <= 1000) ) {
-        alert("Please enter a postive betting amount between 0 and 1000");
-        return;
-    }
+
  
     var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
-    const hash = $web3.utils.sha3(commit + salt)
+    const hash = $web3.utils.sha3(String(commit) + String(salt))
     console.log("Hash: ",hash);
 
     await contract.methods.commit(hash).send({from: $selectedAccount, gas: 3000000, value: game.fee *2}); 
@@ -124,6 +122,10 @@ async function reveal(game: Game){
 }
 
 async function startRevealPhase(game: Game){
+    if (game.numCommits < 3){
+        alert("Not enough players have joined the game yet, please wait until at least 3 players have joined")
+        return;
+    }
     console.log("Starting Revealing Phase...")
     var contract = await new $web3.eth.Contract(Game_ABI.abi as AbiItem[] , game.address);
     //start Reveal Phase
@@ -170,7 +172,7 @@ async function claimDeposit(game: Game){
             
             <input
                 bind:value={fee}
-                type="text"
+                type="number"
                 placeholder="Betting Amount in WEI"
                 class="input mt-3 input-bordered input-accent "
             />
@@ -206,13 +208,13 @@ async function claimDeposit(game: Game){
                                     <div class="flex">
                                         <input
                                         bind:value={commit}
-                                        type="text"
+                                        type="number"
                                         placeholder="Enter your Guess"
                                         class="input w-1/2 input-bordered input-accent "
                                     />
                                     <input
                                         bind:value={salt}
-                                        type="text"
+                                        type="number"
                                         placeholder="Enter a Random Number (SALT)"
                                         class=" input w-1/2 input-bordered input-accent "
                                     />
@@ -284,7 +286,6 @@ async function claimDeposit(game: Game){
                                         on:click={(event) => claimDeposit(game)}
                                         ><span class="text-lg text-white">Retrieve Deposit</span>
                                     </button>  
-                                    <span class="text pt-2 pl-2 pr-2 text-white">Your Guess was: </span>
 
                                 {/if}
                                                  
