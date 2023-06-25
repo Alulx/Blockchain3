@@ -4,10 +4,14 @@ This project demonstrates a basic web3 use case. It comes with a sample contract
 
 ## Quick start
 run npm install to get all needed packages 
+
 you might need to manually install svelte-web3: npm i svelte-web3
 
 In order to run the Frontend you need to run the following commands in the root directory of the project:
+
 cd Frontend
+
 npm run dev
 
+Of Course also add you API Key from alchemy and a metmask private key in your own .env
 ```
