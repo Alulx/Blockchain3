@@ -13,4 +13,5 @@ cd Frontend
 
 npm run dev
 
+Of Course also add you API Key from alchemy and a metmask private key in your own .env
 ```
