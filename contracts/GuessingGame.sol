@@ -175,6 +175,8 @@ contract GuessingGame {
 
     /*
     * This function concludes the game and determines the winner depending on the guesses revealed
+    * If there are multiple winners, the winner is randomly selected
+    *  If there are only 2 reveals then the game is still considered finished and everyone may get their deposit + fee back (if revealed)
     */
     function endGame() external {
         require(guesses.length == commits.length|| block.timestamp >= revealDeadline, "24 hours have not passed yet or not everyone has revealed yet");
