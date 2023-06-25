@@ -91,9 +91,14 @@ async function getGameData(){
     }
 }
 
+
 async function joinGame(game: Game){
     if ( salt == '' || commit == '') {
         alert("At least one Value is missing");
+        return;
+    }
+    if (commit < 0 || commit > 1000) {
+        alert("Please enter a postive betting amount between 0 and 1000");
         return;
     }
 
@@ -191,7 +196,7 @@ async function claimDeposit(game: Game){
                     {#each Games as game}
                         <div class="flex flex-col border-2 bg-secondary  border-orange-600 ">
                             <span class="text pt-2 pl-2 pr-2 text-white">Host: {game.host}</span>
-                            <span class="flex text  p-2 pr-2  text-white">EntryFee: {game.fee} <img src="/img/eth.png"  width=30 height=20 alt="ether" /> </span>
+                            <span class="flex text  p-2 pr-2  text-white">EntryFee: {game.fee} <img src="/img/eth.png"  width=30 height=20 alt="ether" /> in WEI </span>
                             {#if !game.isRevealPhase}
                                 <span class="text  pl-2 pr-2 text-white">Commit Until: {new Date(Number(game.deadlineCommit *1000))}</span>
                             {:else}
