@@ -16,14 +16,13 @@ main()
 
   const path = require("path");
 
-const hre = require("hardhat");
 async function main() {
-  const GuessingGame= await hre.ethers.getContractFactory("GuessingGame");
+  const GuessingGame= await ethers.getContractFactory("GuessingGame");
   const guessingGame= await GuessingGame.deploy();
   await guessingGame.deployed();
   console.log("LogicContract contract deployed to: ", guessingGame.address);
 
-  const GuessingGameFactory= await hre.ethers.getContractFactory("GuessingFactory");
+  const GuessingGameFactory= await ethers.getContractFactory("GuessingFactory");
   const proxyFactory= await GuessingGameFactory.deploy(guessingGame.address);
   await proxyFactory.deployed();
   console.log("proxyFactory contract deployed to: ", proxyFactory.address);

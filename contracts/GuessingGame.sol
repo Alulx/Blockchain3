@@ -24,7 +24,10 @@ contract GuessingFactory  {
         require(_masterContract != address(0), "Invalid contract address");
         logicContractAddress = _masterContract;
     }
-
+    /*
+    * Function to create new GuessingGame
+    * @param _feeAmount: amount of Ether in Wei to be wagered
+    */
     function createGame(uint256 _feeAmount) external  returns (address)  {
         // require(msg.value == _feeAmount, "Incorrect wager amount");
 
@@ -83,7 +86,11 @@ contract GuessingGame {
 
     uint256 public gameEndedFactor; // 1 if game ended normally, 2 if game did not find enough players to pay out players
 
-    // Function only called once when the game is created; _feeAmount should be in eth
+    /*
+    *   Function to initialize the contract
+    *   @param _owner: address of the owner of the contract
+    *  @param _feeAmount: amount of Ether in Wei to be wagered
+    */
     function initialize(address _owner, uint256 _feeAmount) external {
         require(_owner != address(0), "Invalid owner address");
         require(_feeAmount > 0, "Invalid fee amount");
@@ -110,7 +117,10 @@ contract GuessingGame {
     }
 
  
-
+    /*
+    * Function to enter a guess by inserting a hash of the guess and salt
+    * @param commitment: hash of the guess and salt
+    */
     function commit(bytes32 commitment) public payable {
         require(msg.value  == entryFee *2, "Incorrect fee amount, need to send 2x the entry fee");
         require(msg.sender != host, "Host cannot enter a guess");
@@ -126,7 +136,11 @@ contract GuessingGame {
         commits.push(commitment);      
     }
 
-
+    /*
+    * Function to reveal a guess by inserting the guess and salt
+    * @param guess: guess of the player
+    * @param salt: salt of the player
+    */
    function reveal(uint256 guess,uint256 salt ) public  {
         require(gameEnded == false, "Game has already ended");
         require(hasCommited[msg.sender] == true, "Player has not commited something");
@@ -146,7 +160,9 @@ contract GuessingGame {
         }
 
     }
-
+    /*
+    * This starts the second phase of the game: the reveal phase, where everyone may reveal their guesses previously committed
+    */
     function startRevealPhase() external {
         require(msg.sender == host || block.timestamp >= commitDeadline, "24 hours have not passed yet or you are not the host");
         require(gameEnded == false, "Game has already ended");
@@ -157,6 +173,9 @@ contract GuessingGame {
         revealDeadline = block.timestamp + 1 days; // set the deadline to 1 day from now 
     }
 
+    /*
+    * This function concludes the game and determines the winner depending on the guesses revealed
+    */
     function endGame() external {
         require(guesses.length == commits.length|| block.timestamp >= revealDeadline, "24 hours have not passed yet or not everyone has revealed yet");
         require(gameEnded == false, "Game has already ended");
@@ -220,6 +239,7 @@ contract GuessingGame {
         return store_var;
    } 
 
+    // There might be multiple players with the same difference to the average, this function gets alls of them 
    function getPossibleWinners(uint256[] memory _diffs,uint256 _average) internal {
 
 
@@ -287,6 +307,3 @@ contract GuessingGame {
     }
 }
 
-// Commit Reveal
-// Auszahlungen 
-// NatSpec
